@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pure linear regression classifier for CIFAR-10 using raw pixel features."""
+"""Pure linear classifier for CIFAR-10 using raw pixel features."""
 
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ def one_hot(labels: np.ndarray, num_classes: int) -> np.ndarray:
     return encoded
 
 
-def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray) -> np.ndarray:
+def train_linear_model(x_train: np.ndarray, y_train: np.ndarray) -> np.ndarray:
     xtx = x_train.T @ x_train
     xty = x_train.T @ y_train
     try:
@@ -94,7 +94,7 @@ def train_linear_regression(x_train: np.ndarray, y_train: np.ndarray) -> np.ndar
         return np.linalg.pinv(xtx) @ xty
 
 
-def predict(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
+def predict_classes(x: np.ndarray, weights: np.ndarray) -> np.ndarray:
     scores = x @ weights
     return np.argmax(scores, axis=1)
 
@@ -134,17 +134,13 @@ def classification_metrics(matrix: np.ndarray) -> dict:
         where=(precision + recall) != 0,
     )
 
-    macro_precision = float(np.mean(precision))
-    macro_recall = float(np.mean(recall))
-    macro_f1 = float(np.mean(f1))
-
     return {
         "precision_per_class": precision,
         "recall_per_class": recall,
         "f1_per_class": f1,
-        "macro_precision": macro_precision,
-        "macro_recall": macro_recall,
-        "macro_f1": macro_f1,
+        "macro_precision": float(np.mean(precision)),
+        "macro_recall": float(np.mean(recall)),
+        "macro_f1": float(np.mean(f1)),
     }
 
 
@@ -173,7 +169,7 @@ def make_folds(num_samples: int, num_folds: int) -> list[np.ndarray]:
     return list(np.array_split(indices, num_folds))
 
 
-def cross_validate_model(
+def cross_validate_classifier(
     x_train: np.ndarray,
     y_train: np.ndarray,
     num_folds: int,
@@ -198,8 +194,8 @@ def cross_validate_model(
         fold_y_val = y_train[val_indices]
         encoded_fold_y_train = one_hot(fold_y_train, num_classes=len(CLASS_NAMES))
 
-        weights = train_linear_regression(fold_train, encoded_fold_y_train)
-        preds = predict(fold_val, weights)
+        weights = train_linear_model(fold_train, encoded_fold_y_train)
+        preds = predict_classes(fold_val, weights)
         fold_accuracies.append(accuracy(fold_y_val, preds))
 
     return {
@@ -215,8 +211,8 @@ def evaluate_on_test(
     y_test: np.ndarray,
 ) -> dict:
     y_train_encoded = one_hot(y_train, num_classes=len(CLASS_NAMES))
-    weights = train_linear_regression(x_train, y_train_encoded)
-    preds = predict(x_test, weights)
+    weights = train_linear_model(x_train, y_train_encoded)
+    preds = predict_classes(x_test, weights)
     matrix = confusion_matrix(y_test, preds, num_classes=len(CLASS_NAMES))
     metrics = classification_metrics(matrix)
     return {
@@ -244,7 +240,7 @@ def save_cv_plot(cv_result: dict, output_path: Path) -> None:
     plt.xticks(fold_indices)
     plt.xlabel("Fold")
     plt.ylabel("Validation accuracy (%)")
-    plt.title("5-Fold Cross-Validation for Pure Linear Regression")
+    plt.title("5-Fold Cross-Validation for Pure Linear Classification")
     plt.grid(True, linestyle="--", alpha=0.4)
     plt.legend()
     plt.tight_layout()
@@ -310,19 +306,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--plot-path",
         type=Path,
-        default=Path("linear_regression_5fold_cv.png"),
+        default=Path("linear_classification_5fold_cv.png"),
         help="Path to save the cross-validation plot.",
     )
     parser.add_argument(
         "--confusion-plot-path",
         type=Path,
-        default=Path("linear_regression_confusion_matrix.png"),
+        default=Path("linear_classification_confusion_matrix.png"),
         help="Path to save the confusion matrix heatmap.",
     )
     parser.add_argument(
         "--metrics-plot-path",
         type=Path,
-        default=Path("linear_regression_class_metrics.png"),
+        default=Path("linear_classification_class_metrics.png"),
         help="Path to save the per-class metrics bar chart.",
     )
     return parser.parse_args()
@@ -335,7 +331,7 @@ def main() -> None:
     raw_x_train = raw_x_train[: args.num_train]
     raw_y_train = raw_y_train[: args.num_train]
 
-    cv_result = cross_validate_model(
+    cv_result = cross_validate_classifier(
         x_train=raw_x_train,
         y_train=raw_y_train,
         num_folds=args.num_folds,
@@ -360,7 +356,7 @@ def main() -> None:
     save_confusion_matrix_plot(test_result["confusion_matrix"], args.confusion_plot_path)
     save_class_metrics_plot(test_result["metrics"], args.metrics_plot_path)
 
-    print("CIFAR-10 Pure Linear Regression with 5-Fold Cross-Validation")
+    print("CIFAR-10 Pure Linear Classification with 5-Fold Cross-Validation")
     print(f"train samples: {args.num_train}")
     print(f"test samples:  {args.num_test}")
     print(f"folds:         {args.num_folds}")

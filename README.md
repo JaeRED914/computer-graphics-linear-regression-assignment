@@ -1,10 +1,10 @@
-# CIFAR-10 Pure Linear Regression Assignment
+# CIFAR-10 Pure Linear Classification Assignment
 
-This project adapts the old CIFAR-10 KNN assignment into a pure linear regression classifier assignment.
+This project adapts the old CIFAR-10 KNN assignment into a pure linear classification assignment based on a linear regression formulation.
 
 ## Goal
 
-Implement a pure linear regression based image classifier from scratch on the CIFAR-10 dataset using raw pixel features. Use 5-fold cross-validation on the training subset to estimate validation performance, report accuracy, precision, recall, F1-score, and a confusion matrix, and briefly analyze the limitations of linear regression for image classification.
+Implement a pure linear classifier from scratch on the CIFAR-10 dataset using raw pixel features. Use 5-fold cross-validation on the training subset to estimate validation performance, report accuracy, precision, recall, F1-score, and a confusion matrix, and briefly analyze the limitations of linear classification for image classification.
 
 ## Dataset Structure
 
@@ -43,9 +43,9 @@ So the workflow is:
 3. Split the 5,000 training images into 5 folds.
 4. Flatten each image from `32 x 32 x 3` into `3072` raw-pixel features.
 5. Normalize each fold using only the corresponding training-fold statistics.
-6. Add a bias term so the model has the form `Wx + b`.
-7. Implement one-vs-rest pure linear regression manually.
-8. Since pure linear regression has no regularization hyperparameter here, use 5-fold cross-validation to estimate validation accuracy.
+6. Add a bias term so the underlying linear model has the form `Wx + b`.
+7. Implement one-vs-rest pure linear classification manually using a pure linear regression formulation.
+8. Since pure linear classification in this form has no regularization hyperparameter here, use 5-fold cross-validation to estimate validation accuracy.
 9. Train on 4 folds and validate on the remaining fold.
 10. Repeat this process 5 times and compute the mean cross-validation accuracy.
 11. Plot:
@@ -62,11 +62,11 @@ So the workflow is:
 
 ## Files
 
-- `linear_regression_cifar10.py`: main implementation
+- `linear_classification_cifar10.py`: main implementation
 - `REPORT.md`: experiment summary
-- `linear_regression_5fold_cv.png`: 5-fold validation accuracy plot
-- `linear_regression_confusion_matrix.png`: confusion matrix heatmap
-- `linear_regression_class_metrics.png`: per-class precision/recall/F1 bar chart
+- `linear_classification_5fold_cv.png`: 5-fold validation accuracy plot
+- `linear_classification_confusion_matrix.png`: confusion matrix heatmap
+- `linear_classification_class_metrics.png`: per-class precision/recall/F1 bar chart
 - `cifar-10-batches-py/`: CIFAR-10 python batch files
 
 ## Environment
@@ -84,13 +84,13 @@ pip install numpy matplotlib
 ## Run
 
 ```bash
-python3 linear_regression_cifar10.py
+python3 linear_classification_cifar10.py
 ```
 
 You can also change subset size:
 
 ```bash
-python3 linear_regression_cifar10.py --num-train 3000 --num-test 500
+python3 linear_classification_cifar10.py --num-train 3000 --num-test 500
 ```
 
 ## Expected Output
@@ -109,13 +109,13 @@ The script prints:
 
 It also saves:
 
-- `linear_regression_5fold_cv.png`
-- `linear_regression_confusion_matrix.png`
-- `linear_regression_class_metrics.png`
+- `linear_classification_5fold_cv.png`
+- `linear_classification_confusion_matrix.png`
+- `linear_classification_class_metrics.png`
 
 ## Brief Analysis
 
-Pure linear regression is much simpler and faster at inference than KNN, but it is still a weak image classifier when it only uses raw pixels:
+Pure linear classification is much simpler and faster at inference than KNN, but it is still a weak image classifier when it only uses raw pixels:
 
 - it assumes a mostly linear decision boundary
 - it does not capture local image structure well

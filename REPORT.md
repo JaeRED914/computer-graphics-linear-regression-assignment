@@ -1,4 +1,4 @@
-# CIFAR-10 Pure Linear Regression Report
+# CIFAR-10 Pure Linear Classification Report
 
 ## Requirement Check
 
@@ -15,9 +15,10 @@
    - F1-score
    - confusion matrix
 4. Model form:
-   - pure linear regression with bias term, `Wx + b`
+   - pure linear model with bias term, `Wx + b`
+   - used as a classifier through class-score comparison
 5. Hyperparameter graph:
-   - not applicable in this pure linear regression version because no regularization hyperparameter was used
+   - not applicable in this pure linear classification version because no regularization hyperparameter was used
    - instead, a fold-wise validation accuracy graph is provided
 
 ## Dataset Structure
@@ -42,7 +43,7 @@ Each sample is:
 - Test subset: 1,000 images from the official CIFAR-10 test batch
 - Input representation: flattened raw pixels (`3072` features)
 - Preprocessing: divide by `255`, standardize with training mean/std, add bias term
-- Model: one-vs-rest pure linear regression
+- Model: one-vs-rest pure linear classifier using a linear regression formulation
 
 ## 5-Fold Cross-Validation Results
 
@@ -98,17 +99,17 @@ true\pred     0     1     2     3     4     5     6     7     8     9
 
 ## Saved Figures
 
-- `linear_regression_5fold_cv.png`: fold-wise validation accuracy
-- `linear_regression_confusion_matrix.png`: confusion matrix heatmap
-- `linear_regression_class_metrics.png`: class-wise precision/recall/F1-score bar chart
+- `linear_classification_5fold_cv.png`: fold-wise validation accuracy
+- `linear_classification_confusion_matrix.png`: confusion matrix heatmap
+- `linear_classification_class_metrics.png`: class-wise precision/recall/F1-score bar chart
 
 ## Short Interpretation For Presentation
 
-- The model used only raw pixels and a linear decision rule, so performance is limited.
+- The model used only raw pixels and a linear score function, so performance is limited.
 - Validation accuracy stayed around `15%`, and final test accuracy was `19.80%`.
 - `frog`, `ship`, and `truck` were relatively better recognized than classes such as `bird` or `deer`.
 - The confusion matrix shows many errors between visually similar classes.
-- This is consistent with the weakness of pure linear regression on image classification.
+- This is consistent with the weakness of pure linear classification on image classification.
 
 ## Submission Judgment
 
@@ -118,7 +119,8 @@ If the professor mainly wanted "do the previous CIFAR assignment again, but this
 - it separates train/validation/test usage properly
 - it uses 5-fold cross-validation
 - it reports the main evaluation metrics
-- it uses pure linear regression rather than ridge regression
+- it uses a pure linear model with `Wx + b`
+- it clearly states that the final task is classification
 - it includes presentation-friendly graphs
 
-The only caveat is that a pure linear regression model has no natural K-like hyperparameter. So for this version, the validation graph is over folds rather than over a hyperparameter axis.
+The only caveat is that a pure linear classifier has no natural K-like hyperparameter. So for this version, the validation graph is over folds rather than over a hyperparameter axis.
