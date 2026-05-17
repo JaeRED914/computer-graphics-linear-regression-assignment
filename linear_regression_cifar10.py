@@ -110,12 +110,61 @@ def confusion_matrix(y_true: np.ndarray, y_pred: np.ndarray, num_classes: int) -
     return matrix
 
 
+def classification_metrics(matrix: np.ndarray) -> dict:
+    true_positive = np.diag(matrix).astype(np.float64)
+    predicted_positive = matrix.sum(axis=0).astype(np.float64)
+    actual_positive = matrix.sum(axis=1).astype(np.float64)
+
+    precision = np.divide(
+        true_positive,
+        predicted_positive,
+        out=np.zeros_like(true_positive),
+        where=predicted_positive != 0,
+    )
+    recall = np.divide(
+        true_positive,
+        actual_positive,
+        out=np.zeros_like(true_positive),
+        where=actual_positive != 0,
+    )
+    f1 = np.divide(
+        2 * precision * recall,
+        precision + recall,
+        out=np.zeros_like(true_positive),
+        where=(precision + recall) != 0,
+    )
+
+    macro_precision = float(np.mean(precision))
+    macro_recall = float(np.mean(recall))
+    macro_f1 = float(np.mean(f1))
+
+    return {
+        "precision_per_class": precision,
+        "recall_per_class": recall,
+        "f1_per_class": f1,
+        "macro_precision": macro_precision,
+        "macro_recall": macro_recall,
+        "macro_f1": macro_f1,
+    }
+
+
 def format_confusion_matrix(matrix: np.ndarray) -> str:
     header = ["true\\pred"] + [f"{idx:>5}" for idx in range(matrix.shape[1])]
     lines = [" ".join(header)]
     for idx, row in enumerate(matrix):
         values = " ".join(f"{value:>5}" for value in row)
         lines.append(f"{idx:>9} {values}")
+    return "\n".join(lines)
+
+
+def format_class_metrics(metrics: dict) -> str:
+    lines = ["class       precision  recall   f1-score"]
+    for idx, name in enumerate(CLASS_NAMES):
+        lines.append(
+            f"{name:<10} {metrics['precision_per_class'][idx] * 100:>8.2f}%"
+            f" {metrics['recall_per_class'][idx] * 100:>7.2f}%"
+            f" {metrics['f1_per_class'][idx] * 100:>9.2f}%"
+        )
     return "\n".join(lines)
 
 
@@ -168,10 +217,13 @@ def evaluate_on_test(
     y_train_encoded = one_hot(y_train, num_classes=len(CLASS_NAMES))
     weights = train_linear_regression(x_train, y_train_encoded)
     preds = predict(x_test, weights)
+    matrix = confusion_matrix(y_test, preds, num_classes=len(CLASS_NAMES))
+    metrics = classification_metrics(matrix)
     return {
         "predictions": preds,
         "accuracy": accuracy(y_test, preds),
-        "confusion_matrix": confusion_matrix(y_test, preds, num_classes=len(CLASS_NAMES)),
+        "confusion_matrix": matrix,
+        "metrics": metrics,
     }
 
 
@@ -200,6 +252,50 @@ def save_cv_plot(cv_result: dict, output_path: Path) -> None:
     plt.close()
 
 
+def save_confusion_matrix_plot(matrix: np.ndarray, output_path: Path) -> None:
+    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise RuntimeError("matplotlib is required to save the confusion matrix plot.") from exc
+
+    plt.figure(figsize=(8, 7))
+    plt.imshow(matrix, cmap="Blues")
+    plt.colorbar()
+    plt.xticks(range(len(CLASS_NAMES)), CLASS_NAMES, rotation=45, ha="right")
+    plt.yticks(range(len(CLASS_NAMES)), CLASS_NAMES)
+    plt.xlabel("Predicted label")
+    plt.ylabel("True label")
+    plt.title("Confusion Matrix on CIFAR-10 Test Set")
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+
+
+def save_class_metrics_plot(metrics: dict, output_path: Path) -> None:
+    os.environ.setdefault("MPLCONFIGDIR", "/tmp/matplotlib")
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError as exc:
+        raise RuntimeError("matplotlib is required to save the class metrics plot.") from exc
+
+    positions = np.arange(len(CLASS_NAMES))
+    width = 0.25
+
+    plt.figure(figsize=(12, 6))
+    plt.bar(positions - width, metrics["precision_per_class"] * 100.0, width=width, label="Precision")
+    plt.bar(positions, metrics["recall_per_class"] * 100.0, width=width, label="Recall")
+    plt.bar(positions + width, metrics["f1_per_class"] * 100.0, width=width, label="F1-score")
+    plt.xticks(positions, CLASS_NAMES, rotation=45, ha="right")
+    plt.ylabel("Score (%)")
+    plt.xlabel("Class")
+    plt.title("Per-Class Precision, Recall, and F1-Score")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -216,6 +312,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("linear_regression_5fold_cv.png"),
         help="Path to save the cross-validation plot.",
+    )
+    parser.add_argument(
+        "--confusion-plot-path",
+        type=Path,
+        default=Path("linear_regression_confusion_matrix.png"),
+        help="Path to save the confusion matrix heatmap.",
+    )
+    parser.add_argument(
+        "--metrics-plot-path",
+        type=Path,
+        default=Path("linear_regression_class_metrics.png"),
+        help="Path to save the per-class metrics bar chart.",
     )
     return parser.parse_args()
 
@@ -249,6 +357,8 @@ def main() -> None:
     )
 
     save_cv_plot(cv_result, args.plot_path)
+    save_confusion_matrix_plot(test_result["confusion_matrix"], args.confusion_plot_path)
+    save_class_metrics_plot(test_result["metrics"], args.metrics_plot_path)
 
     print("CIFAR-10 Pure Linear Regression with 5-Fold Cross-Validation")
     print(f"train samples: {args.num_train}")
@@ -263,10 +373,18 @@ def main() -> None:
     print()
     print(f"Mean 5-fold validation accuracy: {cv_result['mean_accuracy'] * 100:.2f}%")
     print(f"Test-set accuracy: {test_result['accuracy'] * 100:.2f}%")
+    print(f"Macro precision: {test_result['metrics']['macro_precision'] * 100:.2f}%")
+    print(f"Macro recall:    {test_result['metrics']['macro_recall'] * 100:.2f}%")
+    print(f"Macro F1-score:  {test_result['metrics']['macro_f1'] * 100:.2f}%")
     print(f"Cross-validation plot saved to: {args.plot_path}")
+    print(f"Confusion matrix plot saved to: {args.confusion_plot_path}")
+    print(f"Class metrics plot saved to:    {args.metrics_plot_path}")
     print()
     print("Confusion matrix for test set")
     print(format_confusion_matrix(test_result["confusion_matrix"]))
+    print()
+    print("Per-class precision, recall, and F1-score")
+    print(format_class_metrics(test_result["metrics"]))
     print()
     print("Class index mapping")
     for idx, name in enumerate(CLASS_NAMES):

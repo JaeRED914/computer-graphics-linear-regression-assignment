@@ -1,14 +1,48 @@
 # CIFAR-10 Pure Linear Regression Report
 
+## Requirement Check
+
+1. Data split:
+   - official CIFAR-10 training split used for model development
+   - 5,000-image training subset further split into 5 folds for train/validation
+   - official CIFAR-10 test split used separately for final testing
+2. 5-fold cross-validation:
+   - yes
+3. Metrics reported:
+   - accuracy
+   - precision
+   - recall
+   - F1-score
+   - confusion matrix
+4. Model form:
+   - pure linear regression with bias term, `Wx + b`
+5. Hyperparameter graph:
+   - not applicable in this pure linear regression version because no regularization hyperparameter was used
+   - instead, a fold-wise validation accuracy graph is provided
+
+## Dataset Structure
+
+The CIFAR-10 python version contains:
+
+- `data_batch_1` to `data_batch_5`: training data
+- `test_batch`: test data
+- `batches.meta`: class names
+
+Each sample is:
+
+- a color image of size `32 x 32 x 3`
+- stored as `3072` raw pixel values after flattening
+- labeled as one of 10 classes:
+  `airplane`, `automobile`, `bird`, `cat`, `deer`, `dog`, `frog`, `horse`, `ship`, `truck`
+
 ## Experiment Setup
 
-- Dataset: CIFAR-10
-- Training subset: 5,000 images
-- Test subset: 1,000 images
+- Training subset used for CV: 5,000 images
+- Validation method: 5-fold cross-validation
+- Test subset: 1,000 images from the official CIFAR-10 test batch
 - Input representation: flattened raw pixels (`3072` features)
 - Preprocessing: divide by `255`, standardize with training mean/std, add bias term
 - Model: one-vs-rest pure linear regression
-- Cross-validation: 5 folds on the training subset
 
 ## 5-Fold Cross-Validation Results
 
@@ -20,15 +54,18 @@
 | 4 | 15.20% |
 | 5 | 16.40% |
 
-Mean cross-validation result:
+Mean cross-validation accuracy:
 
-- mean validation accuracy = `15.04%`
+- `15.04%`
 
-## Final Test Result
+## Final Test Metrics
 
-- test accuracy = `19.80%`
+- Accuracy: `19.80%`
+- Macro Precision: `19.65%`
+- Macro Recall: `19.59%`
+- Macro F1-score: `19.55%`
 
-## Confusion Matrix For Best Model
+## Confusion Matrix
 
 ```text
 true\pred     0     1     2     3     4     5     6     7     8     9
@@ -44,31 +81,44 @@ true\pred     0     1     2     3     4     5     6     7     8     9
         9    13    11     5    11     7     5     5    11    17    24
 ```
 
-Class mapping:
+## Per-Class Precision, Recall, and F1-score
 
-- `0`: airplane
-- `1`: automobile
-- `2`: bird
-- `3`: cat
-- `4`: deer
-- `5`: dog
-- `6`: frog
-- `7`: horse
-- `8`: ship
-- `9`: truck
+| Class | Precision | Recall | F1-score |
+| --- | --- | --- | --- |
+| airplane | 18.75% | 17.48% | 18.09% |
+| automobile | 20.83% | 16.85% | 18.63% |
+| bird | 16.33% | 16.00% | 16.16% |
+| cat | 19.30% | 21.36% | 20.28% |
+| deer | 15.15% | 16.67% | 15.87% |
+| dog | 16.28% | 16.28% | 16.28% |
+| frog | 24.27% | 22.32% | 23.26% |
+| horse | 19.39% | 18.63% | 19.00% |
+| ship | 22.90% | 28.30% | 25.32% |
+| truck | 23.30% | 22.02% | 22.64% |
 
-## Short Analysis
+## Saved Figures
 
-The overall accuracy is limited because pure linear regression uses a linear decision boundary on raw pixels. CIFAR-10 images contain large variations in pose, color, lighting, and background, which raw-pixel linear models do not represent well.
+- `linear_regression_5fold_cv.png`: fold-wise validation accuracy
+- `linear_regression_confusion_matrix.png`: confusion matrix heatmap
+- `linear_regression_class_metrics.png`: class-wise precision/recall/F1-score bar chart
 
-The confusion matrix shows that visually related classes are mixed often:
+## Short Interpretation For Presentation
 
-- `cat`, `dog`, and `deer`
-- `automobile` and `truck`
-- `airplane` and `ship`
+- The model used only raw pixels and a linear decision rule, so performance is limited.
+- Validation accuracy stayed around `15%`, and final test accuracy was `19.80%`.
+- `frog`, `ship`, and `truck` were relatively better recognized than classes such as `bird` or `deer`.
+- The confusion matrix shows many errors between visually similar classes.
+- This is consistent with the weakness of pure linear regression on image classification.
 
-This confirms that pure linear regression is simpler than KNN at prediction time, but it is still not strong enough for image classification when only raw pixels are used.
+## Submission Judgment
 
-## Plot
+If the professor mainly wanted "do the previous CIFAR assignment again, but this time with linear regression," this version is defensible because:
 
-- `linear_regression_5fold_cv.png`: graph of fold accuracy in 5-fold validation
+- it uses CIFAR-10 correctly
+- it separates train/validation/test usage properly
+- it uses 5-fold cross-validation
+- it reports the main evaluation metrics
+- it uses pure linear regression rather than ridge regression
+- it includes presentation-friendly graphs
+
+The only caveat is that a pure linear regression model has no natural K-like hyperparameter. So for this version, the validation graph is over folds rather than over a hyperparameter axis.
